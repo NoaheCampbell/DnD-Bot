@@ -1,6 +1,8 @@
 const { SlashCommandBuilder } = require("discord.js");
-const axios = require("axios");
 const puppeteer = require("puppeteer");
+const cheerio = require("cheerio");
+
+let characterName = "";
 
 async function scrapeData(url) {
     console.log(url);
@@ -21,10 +23,8 @@ async function scrapeData(url) {
 
   // Given the html as a string, this function will parse it to get the character name
 async function readData(html) {
-    console.log(html);
-    // const characterName = html.match(/(?<=<h1 class="class="MuiTypography-root MuiTypography-h4 ddb-character-app-sn0l9p" style="font-family: &quot;Roboto Condensed&quot;;">).*(?=<\/h1>)/g)[0];
-    const characterName = "undefined";
-    return characterName;
+    const $ = cheerio.load(html);
+    characterName = $('h1.MuiTypography-root.MuiTypography-h4.ddb-character-app-sn0l9p').text();
 }
 
 // This command will take a link from the user, parse it to see if it is a dndbeyond link, and if so then get all relevant character data from the character sheet
@@ -42,7 +42,7 @@ module.exports = {
         await interaction.deferReply({ ephemeral: false });
 
         scrapeData(link).then(async (data) => {
-            const characterName = await readData(data);
+            await readData(data);
 
             await interaction.editReply({ content: `Successfully got to ${characterName}'s character sheet!` });
         }
