@@ -93,10 +93,10 @@ async function scrapeData(url) {
 function readData(html, characterData) {
     const $ = cheerio.load(html);
     characterData.name = $('h1.MuiTypography-root.MuiTypography-h4.ddb-character-app-sn0l9p').text();
+    console.log(characterData.name);
 
     const abilityElements = $('.ct-main-tablet__ability');
     const statKeys = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
-
     abilityElements.each((index, element) => {
         if (index < statKeys.length) {
             const statValue = $(element).find('.ddbc-ability-summary__secondary--dark-mode').text().trim();
@@ -130,26 +130,17 @@ function readData(html, characterData) {
         characterData.savingThrows[ability.toUpperCase()] = modifierText;
     });
 
-    $('.ct-skills__list .ct-skills__item').each((index, element) => {
-        // Extract the skill name; assuming it's directly within .ct-skills__item
-        const skillNameElement = $(element).find('.ct-skill__col--skill');
-        const skillNameText = skillNameElement.text().trim();
-        const skillKey = convertSkillNameToKey(skillNameText);  // Convert the skill name text to your characterData key format
-
-        // Extract the bonus
-        const bonusElement = $(element).find('.ddbc-signed-number');
-        const bonus = bonusElement.attr('aria-label').trim();
-        
-        // Check for advantage or disadvantage
-        const hasAdvantage = $(element).find('.ddbc-advantage-icon').length > 0;
-        const hasDisadvantage = $(element).find('.ddbc-disadvantage-icon').length > 0;
-        
-        // Populate the characterData object
-        if (skillKey) {
-            characterData.skillChecks[skillKey] = bonus;
-            characterData.skillRerolls[skillKey] = hasAdvantage ? 'Advantage' : hasDisadvantage ? 'Disadvantage' : null;
-        }
+    const skillElements = $('.ct-skills__item');
+    skillElements.each((index, element) => {
+        console.log(index);
+        const skillName = $(element).find('.ct-skills__col--skill.ct-skills__col--skill--dark-mode').text().trim();
+        const skillValue = $(element).find('.ddbc-signed-number').attr('aria-label');
+        const skillKey = convertSkillNameToKey(skillName);
+        console.log('Skill Info: ' + skillName, skillValue);
+        characterData.skillChecks[skillKey] = skillValue;
     });
+
+    console.log(characterData);
 }
 
 function convertSkillNameToKey(skillNameText) {
@@ -178,7 +169,7 @@ function convertSkillNameToKey(skillNameText) {
     return skillMapping[skillNameText] || null;  // Return the matching key or null if not found
 }
 
-async function readDataWithRetry(html, characterData, maxRetries = 4) {
+async function readDataWithRetry(html, characterData, maxRetries = 1) {
     let retries = 0;
 
     while (retries < maxRetries) {
@@ -187,13 +178,12 @@ async function readDataWithRetry(html, characterData, maxRetries = 4) {
         // Check if all values are non-null
         const allDataPresent = Object.values(characterData.stats).every(stat => stat !== null) &&
                                Object.values(characterData.savingThrows).every(st => st !== null) &&
-                               Object.values(characterData.skillChecks).every(skill => skill !== null) &&
-                               Object.values(characterData.skillRerolls).every(reroll => reroll !== null);
+                               Object.values(characterData.skillChecks).every(sc => sc !== null);
 
         if (allDataPresent) {
             console.log('Character data successfully imported');
             return characterData;
-        }
+        } 
 
         console.log('Character data incomplete, retrying... Retries left:'+ (maxRetries - retries));
         retries++;
@@ -226,7 +216,40 @@ module.exports = {
             if (characterData.error) {
                 interaction.editReply({ content: characterData.error });
             } else {
-                interaction.editReply({ content: `Successfully got to ${characterData.name}'s character sheet with the following stats:\nSTR: ${characterData.stats.STR}\nDEX: ${characterData.stats.DEX}\nCON: ${characterData.stats.CON}\nINT: ${characterData.stats.INT}\nWIS: ${characterData.stats.WIS}\nCHA: ${characterData.stats.CHA}\nSaving Throws: \nSTR: ${characterData.savingThrows.STR}\nDEX: ${characterData.savingThrows.DEX}\nCON: ${characterData.savingThrows.CON}\nINT: ${characterData.savingThrows.INT}\nWIS: ${characterData.savingThrows.WIS}\nCHA: ${characterData.savingThrows.CHA}` });
+                interaction.editReply({ content: 
+`Successfully got to ${characterData.name}'s character sheet with the following stats:
+    STR: ${characterData.stats.STR}
+    DEX: ${characterData.stats.DEX}
+    CON: ${characterData.stats.CON}
+    INT: ${characterData.stats.INT}
+    WIS: ${characterData.stats.WIS}
+    CHA: ${characterData.stats.CHA}
+Saving Throws:
+    STR: ${characterData.savingThrows.STR}
+    DEX: ${characterData.savingThrows.DEX}
+    CON: ${characterData.savingThrows.CON}
+    INT: ${characterData.savingThrows.INT}
+    WIS: ${characterData.savingThrows.WIS}
+    CHA: ${characterData.savingThrows.CHA}
+Skill Checks:
+    Acrobatics: ${characterData.skillChecks.Acrobatics}
+    Animal Handling: ${characterData.skillChecks.AnimalHandling}
+    Arcana: ${characterData.skillChecks.Arcana}
+    Athletics: ${characterData.skillChecks.Athletics}
+    Deception: ${characterData.skillChecks.Deception}
+    History: ${characterData.skillChecks.History}
+    Insight: ${characterData.skillChecks.Insight}
+    Intimidation: ${characterData.skillChecks.Intimidation}
+    Investigation: ${characterData.skillChecks.Investigation}
+    Medicine: ${characterData.skillChecks.Medicine}
+    Nature: ${characterData.skillChecks.Nature}
+    Perception: ${characterData.skillChecks.Perception}
+    Performance: ${characterData.skillChecks.Performance}
+    Persuasion: ${characterData.skillChecks.Persuasion}
+    Religion: ${characterData.skillChecks.Religion}
+    Sleight of Hand: ${characterData.skillChecks.SleightOfHand}
+    Stealth: ${characterData.skillChecks.Stealth}
+    Survival: ${characterData.skillChecks.Survival}` });
             }
         }
         ).catch((err) => {
