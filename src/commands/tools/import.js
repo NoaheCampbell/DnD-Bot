@@ -134,7 +134,7 @@ function readData(html, characterData) {
     skillElements.each((index, element) => {
         console.log(index);
         const skillName = $(element).find('.ct-skills__col--skill.ct-skills__col--skill--dark-mode').text().trim();
-        const skillValue = $(element).find('.ddbc-signed-number').attr('aria-label');
+        const skillValue = ($(element).find('.ddbc-signed-number').attr('aria-label').replace(' ', ''));
         const skillKey = convertSkillNameToKey(skillName);
         console.log('Skill Info: ' + skillName, skillValue);
         characterData.skillChecks[skillKey] = skillValue;
